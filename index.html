@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Game Edukasi PAI & Budi Pekerti Kelas 4</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+body{
+  font-family:'Roboto Condensed',sans-serif;
+  background:black;
+  color:white;
+  overflow:hidden;
+}
+
+.answer-box{
+  background:linear-gradient(to bottom,#000,#203A43);
+  border:2px solid #8e9eab;
+  border-radius:40px;
+  padding:15px 25px;
+  cursor:pointer;
+  font-size:22px;
+  transition:all .2s ease;
+}
+.answer-box:hover{
+  background:linear-gradient(to bottom,#F2994A,#F2C94C);
+  color:black;
+}
+.ladder-item{
+  padding:4px 10px;
+  font-weight:bold;
+  color:#facc15;
+}
+.ladder-item.active{
+  background:#facc15;
+  color:black;
+}
+.hidden{display:none}
+
+/* ANIMASI LOGO INTRO */
+#logoIntro{
+  width:320px;
+  transform:scale(0.2);
+  opacity:0;
+  animation:zoomOut 2.5s ease-out forwards;
+}
+@keyframes zoomOut{
+  0%{transform:scale(0.2);opacity:0}
+  60%{opacity:1}
+  100%{transform:scale(1);opacity:1}
+}
+</style>
+</head>
+
+<body class="relative h-screen w-screen">
+
+<!-- BACKGROUND GAME -->
+<div id="bgGame" class="absolute inset-0 hidden"
+style="background-image:url('./assets/images/bg-game.png'); background-size:cover; background-position:center;"></div>
+
+<div class="absolute inset-0 bg-black/40 pointer-events-none"></div>
+
+<!-- AUDIO -->
+<audio id="introMusic" preload="auto">
+  <source src="./assets/audio/intro.mp3" type="audio/mpeg">
+  Browsermu tidak mendukung audio.
+</audio>
+<audio id="bgm" loop preload="auto">
+  <source src="./assets/audio/bgm.mp3" type="audio/mpeg">
+  Browsermu tidak mendukung audio.
+</audio>
+<audio id="benar" preload="auto">
+  <source src="./assets/audio/benar.mp3" type="audio/mpeg">
+</audio>
+<audio id="salah" preload="auto">
+  <source src="./assets/audio/salah.mp3" type="audio/mpeg">
+</audio>
+
+<!-- INTRO -->
+<div id="introScreen" class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-8">
+
+  <div class="absolute inset-0"
+    style="background-image:url('./assets/images/bg-intro-1.png'); background-size:cover; background-position:center;"></div>
+
+  <div class="absolute inset-0 opacity-70"
+    style="background-image:url('./assets/images/bg-intro-2.png'); background-size:cover; background-position:center;"></div>
+
+  <img id="logoIntro" src="./assets/images/logo.png" class="relative z-10"/>
+
+  <button onclick="startGame()"
+    class="relative z-10 bg-purple-600 hover:bg-yellow-400 px-14 py-4 rounded-full text-3xl font-bold">
+    MULAI
+  </button>
+</div>
+
+<!-- GAME -->
+<div id="game" class="hidden relative z-20 h-full flex p-6 gap-6">
+  <div class="flex-1 flex flex-col justify-end">
+    <div class="bg-black/70 p-6 rounded-xl mb-4">
+      <h2 id="question" class="text-3xl text-center font-bold"></h2>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div class="answer-box" onclick="answer(0)">A. <span id="a0"></span></div>
+      <div class="answer-box" onclick="answer(1)">B. <span id="a1"></span></div>
+      <div class="answer-box" onclick="answer(2)">C. <span id="a2"></span></div>
+      <div class="answer-box" onclick="answer(3)">D. <span id="a3"></span></div>
+    </div>
+  </div>
+  <div class="w-52 bg-black/70 rounded-xl p-3 flex flex-col-reverse" id="ladder"></div>
+</div>
+
+<!-- RESULT -->
+<div id="result" class="hidden absolute inset-0 bg-black/80 z-30 flex flex-col items-center justify-center">
+  <h2 class="text-3xl mb-4">PERMAINAN SELESAI</h2>
+  <div id="money" class="text-4xl text-yellow-400 mb-4"></div>
+  <button onclick="location.reload()"
+    class="bg-green-600 px-10 py-4 rounded-full text-xl">MAIN LAGI</button>
+</div>
+
+<script>
+// ================= BANK SOAL (TETAP) =================
+const bankSoal=[
+{q:"Shalat berjamaah adalah shalat yang dilakukan...",answers:["Sendiri","Bersama-sama","Bergantian","Di rumah"],correct:1},
+{q:"Orang yang memimpin shalat berjamaah disebut...",answers:["Makmum","Imam","Muadzin","Khatib"],correct:1},
+{q:"Pahala shalat berjamaah lebih utama sebanyak...",answers:["10","15","20","27"],correct:3},
+{q:"Menjaga kebersihan tubuh bertujuan agar terhindar dari...",answers:["Pujian","Penyakit","Tugas","Permainan"],correct:1},
+{q:"Membuang sampah harus di...",answers:["Sungai","Jalan","Tempat sampah","Halaman"],correct:2},
+{q:"Mencuci tangan sebaiknya menggunakan...",answers:["Air","Sabun dan air","Tisu","Handuk"],correct:1},
+{q:"Puasa Ramadhan dilakukan pada bulan...",answers:["Syawal","Ramadhan","Sya'ban","Dzulhijjah"],correct:1},
+{q:"Puasa Ramadhan hukumnya adalah...",answers:["Sunnah","Makruh","Wajib","Mubah"],correct:2},
+{q:"Makan sahur dilakukan sebelum...",answers:["Isya","Tidur","Subuh","Maghrib"],correct:2},
+{q:"Bersikap jujur termasuk akhlak...",answers:["Buruk","Mulia","Biasa","Tercela"],correct:1},
+{q:"Menepati janji menunjukkan sikap...",answers:["Malas","Amanah","Takut","Pemarah"],correct:1},
+{q:"Akhlak mulia harus dilakukan...",answers:["Kadang-kadang","Setiap waktu","Saat ada guru","Di sekolah saja"],correct:1},
+{q:"Kisah teladan berisi contoh perilaku...",answers:["Buruk","Baik","Lucu","Menakutkan"],correct:1},
+{q:"Nabi Muhammad SAW adalah teladan dalam hal...",answers:["Kekayaan","Kejujuran","Kekuatan","Kedudukan"],correct:1},
+{q:"Kisah Nabi Ayyub AS mengajarkan sifat...",answers:["Kaya","Sabar","Kuat","Cerdas"],correct:1}
+];
+
+// ================= LOGIKA GAME =================
+const ladderMoney=[
+"Rp 50.000","Rp 125.000","Rp 250.000","Rp 500.000","Rp 1.000.000",
+"Rp 2.000.000","Rp 4.000.000","Rp 8.000.000","Rp 16.000.000",
+"Rp 32.000.000","Rp 64.000.000","Rp 125.000.000",
+"Rp 250.000.000","Rp 500.000.000","Rp 1 Milyar"
+];
+
+let questions=[],level=0;
+const shuffle=a=>a.sort(()=>Math.random()-0.5);
+
+function startGame(){
+  const introMusicEl = document.getElementById("introMusic");
+  const bgGameEl = document.getElementById("bgGame");
+  const introScreenEl = document.getElementById("introScreen");
+  const gameEl = document.getElementById("game");
+  const bgmEl = document.getElementById("bgm");
+
+  introMusicEl.play().catch(()=>{console.log("Intro Music blocked")});
+  setTimeout(()=>{
+    introMusicEl.pause();
+    introScreenEl.classList.add("hidden");
+    bgGameEl.classList.remove("hidden");
+    gameEl.classList.remove("hidden");
+    questions=shuffle([...bankSoal]).slice(0,15);
+    level=0;
+    bgmEl.play().catch(()=>{console.log("BGM blocked")});
+    load();
+  },3000);
+}
+
+function load(){
+  const questionEl = document.getElementById("question");
+  const ladderEl = document.getElementById("ladder");
+  questionEl.innerText=questions[level].q;
+  questions[level].answers.forEach((v,i)=>document.getElementById("a"+i).innerText=v);
+  ladderEl.innerHTML="";
+  ladderMoney.forEach((m,i)=>{
+    const d=document.createElement("div");
+    d.className="ladder-item"+(i===level?" active":"");
+    d.innerText=(i+1)+". "+m;
+    ladderEl.appendChild(d);
+  });
+}
+
+function answer(i){
+  const bgmEl = document.getElementById("bgm");
+  const benarEl = document.getElementById("benar");
+  const salahEl = document.getElementById("salah");
+
+  bgmEl.pause();
+  if(i===questions[level].correct){
+    benarEl.play().catch(()=>{console.log("Sound benar blocked")});
+    level++;
+    if(level>=questions.length) endGame(level-1);
+    else setTimeout(()=>{bgmEl.play().catch(()=>{}); load()},1000);
+  }else{
+    salahEl.play().catch(()=>{console.log("Sound salah blocked")});
+    setTimeout(()=>endGame(level-1),1000);
+  }
+}
+
+function endGame(lv){
+  const gameEl = document.getElementById("game");
+  const resultEl = document.getElementById("result");
+  const bgmEl = document.getElementById("bgm");
+  const moneyEl = document.getElementById("money");
+
+  bgmEl.pause();
+  gameEl.classList.add("hidden");
+  resultEl.classList.remove("hidden");
+  moneyEl.innerText=lv>=0?ladderMoney[lv]:"Rp 0";
+}
+</script>
+
+</body>
+</html>
